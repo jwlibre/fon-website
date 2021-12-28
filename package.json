@@ -1,0 +1,17 @@
+{
+    "name": "fields_website",
+    "version": "1.0.0",
+    "description": "",
+    "source": "src/index.html",
+    "private": true,
+    "scripts": {
+        "start": "parcel",
+        "build": "parcel build"
+    },
+    "dependencies": {
+        "three": "^0.136.0"
+    },
+    "devDependencies": {
+        "parcel": "^2.0.1"
+    }
+}
