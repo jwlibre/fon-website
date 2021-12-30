@@ -30,4 +30,4 @@
 <h3>Scripts</h3>
 
 - `npm run start` - opens the src/index.html file in a dev server.
-- `npm run build` - creates the dist folder, and builds and minifies the src files into the output files into the dist folder, ready to be published.
+- `npm run build` - creates the dist folder, and then builds and minifies the src files into the output files into the dist folder, ready to be published.
