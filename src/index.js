@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import {FlyControls} from "three/examples/jsm/controls/FlyControls";
 
 let mesh, groundMesh;
+
 let scene, camera, controls, renderer, raycaster, INTERSECTED;
 let fieldGroup, room1Group, room2Group;
 let pointer = new THREE.Vector2();
