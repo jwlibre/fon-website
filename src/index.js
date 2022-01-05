@@ -59,9 +59,34 @@ function createFieldScene(){
 
         fieldGroup.add( fieldAmbientLight, fieldDirectionalLight, groundMesh );
 
+        // Night sky with stars
+        const vertices = [];
+
+        for ( let i = 0; i < 10000; i ++ ) {
+
+            const radius = 10;
+            const theta = Math.random() * Math.PI;
+            const phi = Math.random() * Math.PI;
+
+            const x = radius * Math.sin(theta) * Math.cos(phi);
+            const y = radius * Math.sin(theta) * Math.sin(phi);
+            const z = radius * Math.cos(theta);
+
+            vertices.push( x, y, z );
+        }
+
+        const starGeometry = new THREE.BufferGeometry();
+        starGeometry.setAttribute( 'position', new THREE.Float32BufferAttribute( vertices, 3 ) );
+
+        const starMaterial = new THREE.PointsMaterial( { color: 0xdddddd, size: 1.5, sizeAttenuation: false } );
+
+        const points = new THREE.Points( starGeometry, starMaterial );
+
+        fieldGroup.add( points );
+
         scene.add( fieldGroup );
         console.log( fieldGroup );
-}
+        }
 
 
 function fieldSceneControls(){
