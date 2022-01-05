@@ -5,8 +5,8 @@
     "source": "src/index.html",
     "private": true,
     "scripts": {
-        "start": "rm -rf dist/* && parcel",
-        "build": "rm -rf dist/* && parcel build"
+        "start": "find dist -maxdepth 1 -type f -delete && parcel",
+        "build": "find dist -maxdepth 1 -type f -delete && parcel build"
     },
     "dependencies": {
         "three": "^0.136.0"
