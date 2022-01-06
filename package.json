@@ -9,6 +9,7 @@
         "build": "find dist -maxdepth 1 -type f -delete && parcel build"
     },
     "dependencies": {
+        "gsap": "^3.9.1",
         "three": "^0.136.0"
     },
     "devDependencies": {
