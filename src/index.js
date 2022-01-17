@@ -78,6 +78,16 @@ function createFieldScene(){
 
     fieldGroup.add( points );
 
+    // AUDIO
+    var audioLoader = new THREE.AudioLoader();
+    var listener = new THREE.AudioListener();
+    var audio = new THREE.Audio(listener);
+    audioLoader.load('audio/scott-buckley-i-walk-with-ghosts.mp3', function(buffer) {
+        audio.setBuffer(buffer);
+        audio.setLoop(true);
+        audio.play();
+    });
+
     scene.add( fieldGroup );
     console.log( fieldGroup );
     }
