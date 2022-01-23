@@ -42,6 +42,7 @@ function createFieldScene(){
         const door = new THREE.Mesh( doorGeometry, doorMaterial );
         door.position.x = i - 5;
         door.position.z = - 3;
+        door.layers.enable( 1 );
         fieldGroup.add(door);
         }
     
@@ -200,6 +201,9 @@ function init() {
     composer = new EffectComposer( renderer );
     const renderPass = new RenderPass( scene, camera );
     composer.addPass( renderPass );
+
+    //raycaster layers
+    raycaster.layers.set( 1 );
 
     //create outline
     outlinePass = new OutlinePass( new THREE.Vector2( window.innerWidth, window.innerHeight ), scene, camera );
