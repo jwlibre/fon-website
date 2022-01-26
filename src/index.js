@@ -4,12 +4,14 @@ import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 import { OutlinePass } from 'three/examples/jsm/postprocessing/OutlinePass.js';
 import { FXAAShader } from 'three/examples/jsm/shaders/FXAAShader.js';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { gsap } from 'gsap'
 
 let groundMesh;
 let scene, camera, renderer, selectedObject;
 let fieldGroup;
 let composer, effectFXAA, outlinePass;
+let mixer;
 
 let selectedObjects = [];
 
@@ -35,24 +37,60 @@ function createFieldScene(){
     fieldDirectionalLight.position.set(3, 4, 3);
 
     // build doors with a lazy layout - doors will need specific names in your 3D model scene
-    const doorGeometry = new THREE.BoxGeometry( 0.8, 1.9, 0.08 );
+    const doorGeometry = new THREE.BoxGeometry( 1, 2.5, 0.08 );
     const doorMaterial = new THREE.MeshLambertMaterial();
+
+    const doorLocations = new Array();
+    doorLocations.push(new THREE.Vector3(0, 0, -3));
+    doorLocations.push(new THREE.Vector3(2, 0, -4));
+    doorLocations.push(new THREE.Vector3(-2, 0, -5));
+    doorLocations.push(new THREE.Vector3(4, 0, -6));
+    doorLocations.push(new THREE.Vector3(-4, 0, -7));
+    doorLocations.push(new THREE.Vector3(6, 0, -8));
+    doorLocations.push(new THREE.Vector3(-6, 0, -9));
+    doorLocations.push(new THREE.Vector3(8, 0, -10));
+    doorLocations.push(new THREE.Vector3(-8, 0, -11));
+    doorLocations.push(new THREE.Vector3(10, 0, -12));
 
     for (let i = 0; i < 10; i++) {
         const door = new THREE.Mesh( doorGeometry, doorMaterial );
-        door.position.x = i - 5;
-        door.position.z = - 3;
+        door.position.x = doorLocations[i].x;
+        door.position.y = 0;
+        door.position.z = doorLocations[i].z;
         door.layers.enable( 1 );
         fieldGroup.add(door);
         }
     
         
-    // build floor
-    const groundGeometry = new THREE.CylinderBufferGeometry(30, 30, 0.5, 32, 1); 
-    groundMesh = new THREE.Mesh( groundGeometry, doorMaterial );
-    groundMesh.position.y = -0.7
+    // const dracoLoader = new DRACOLoader();
+    // dracoLoader.setDecoderPath( 'js/libs/draco/gltf/' );
 
-    fieldGroup.add( fieldAmbientLight, fieldDirectionalLight, groundMesh );
+    const loader = new GLTFLoader(manager);
+    // loader.setDRACOLoader( dracoLoader );
+    loader.load( 'assets/field_grass_anim4.glb', function ( gltf ) {
+
+        const model = gltf.scene;
+        model.position.set( 0, 0, -7 );
+        model.rotateY(3.14);
+        // model.scale.set( 0.01, 0.01, 0.01 );
+        fieldGroup.add( model );
+        console.log(model);
+
+        mixer = new THREE.AnimationMixer( model );
+        console.log(gltf.animations.length);
+        for (let a=0; a<gltf.animations.length; a++){
+            console.log(gltf.animations[a]);
+            mixer.clipAction(gltf.animations[a]).play();
+        }
+        // mixer.clipAction( gltf.animations ).play();
+
+    }, undefined, function ( e ) {
+
+        console.error( e );
+
+    } );
+
+    fieldGroup.add( fieldAmbientLight, fieldDirectionalLight );
 
     // Night sky with stars
     const vertices = [];
@@ -181,6 +219,7 @@ function init() {
 
     camera = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 0.01, 50 );
     camera.position.z = 1;
+    camera.position.y = 0.9;
     // this is needed for normal camera looking, otherwise it goes fucked.
     camera.rotation.order = 'YXZ'
 
@@ -283,6 +322,7 @@ function animate() {
     //mesh.rotation.y += 0;
 
     const delta = clock.getDelta();
+    if ( mixer ) mixer.update( delta );
 
     if(fieldGroup.visible == true) {
         fieldSceneControls();
