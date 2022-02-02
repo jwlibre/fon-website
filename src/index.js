@@ -15,6 +15,29 @@ let mixer;
 
 let selectedObjects = [];
 
+// LOADING MANAGER
+const manager = new THREE.LoadingManager( () => {
+    const loadingScreen = document.getElementById( 'loading-screen' );
+    loadingScreen.classList.add( 'fade-out' );
+    // optional: remove loader from DOM via event listener
+    loadingScreen.addEventListener( 'transitionend', onTransitionEnd );
+});
+// manager.onStart = function ( url, itemsLoaded, itemsTotal ) {
+// 	console.log( 'Started loading file: ' + url + '.\nLoaded ' + itemsLoaded + ' of ' + itemsTotal + ' files.' );
+// };
+// manager.onLoad = function ( ) {
+// 	console.log( 'Loading complete!');
+// };
+// manager.onProgress = function ( url, itemsLoaded, itemsTotal ) {
+// 	console.log( 'Loading file: ' + url + '.\nLoaded ' + itemsLoaded + ' of ' + itemsTotal + ' files.' );
+// };
+// manager.onError = function ( url ) {
+// 	console.log( 'There was an error loading ' + url );
+// };
+function onTransitionEnd( event ) {
+	event.target.remove();
+}
+
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 
@@ -202,7 +225,7 @@ function createFieldScene(){
     scene.background = skybox_texture;
 
     // AUDIO
-    var audioLoader = new THREE.AudioLoader();
+    var audioLoader = new THREE.AudioLoader(manager);
     var listener = new THREE.AudioListener();
     var audio = new THREE.Audio(listener);
     audioLoader.load('audio/scott-buckley-i-walk-with-ghosts.mp3', function(buffer) {
