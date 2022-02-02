@@ -4,12 +4,14 @@ import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 import { OutlinePass } from 'three/examples/jsm/postprocessing/OutlinePass.js';
 import { FXAAShader } from 'three/examples/jsm/shaders/FXAAShader.js';
-import { gsap } from 'gsap'
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { MeshSurfaceSampler } from 'three/examples/jsm/math/MeshSurfaceSampler.js';
+import { gsap } from 'gsap';
 
-let groundMesh;
 let scene, camera, renderer, selectedObject;
 let fieldGroup;
 let composer, effectFXAA, outlinePass;
+let mixer;
 
 let selectedObjects = [];
 
@@ -43,9 +45,83 @@ const clock = new THREE.Clock();
 
 window.addEventListener( 'resize', onWindowResize, false );
 
+// Grass texture loader with diffuse and alpha
+let grassLoader = new THREE.TextureLoader();
+let diffuse = grassLoader.load('img/grass_full.png');
+let alpha = grassLoader.load( 'img/grass_full_alpha.jpg' );
+
+// Grass shaders
+const vertexShader = `
+  varying vec2 vUv;
+  uniform float time;
+  
+	void main() {
+
+    vUv = uv;
+    
+    // VERTEX POSITION
+    
+    vec4 mvPosition = vec4( position, 1.0 );
+    #ifdef USE_INSTANCING
+    	mvPosition = instanceMatrix * mvPosition;
+    #endif
+    
+    // DISPLACEMENT
+    
+    // here the displacement is made stronger on the blades tips.
+    float dispPower = 1.0 - cos( uv.y * 3.1416 / 2.0 );
+    
+    float displacement = sin( mvPosition.z + time * 1.0 ) * ( 0.05 * dispPower );
+    mvPosition.z += displacement;
+    
+    //
+    
+    vec4 modelViewPosition = modelViewMatrix * mvPosition;
+    gl_Position = projectionMatrix * modelViewPosition;
+
+	}
+`;
+
+const fragmentShader = `
+  uniform sampler2D map;
+  uniform sampler2D alphaMap;
+  varying vec2 vUv;
+  
+  void main() {
+  
+    //If transparent, don't draw
+  if(texture2D(alphaMap, vUv).r < 0.15){
+    discard;
+  }
+  
+/*   	vec3 baseColor = vec3( 0.41, 1.0, 0.5 );
+  	    float clarity = ( vUv.y * 0.5 ) + 0.5;
+  	    gl_FragColor = vec4( baseColor * clarity, 1 ); */
+        
+  gl_FragColor = texture2D(map, vUv);
+  }
+`;
+
+const uniforms = {
+  time: {
+    value: 0
+  },
+  map: {
+    type: 't',
+    value: diffuse
+  },
+  alphaMap: { value: alpha }
+}
+
+const leavesMaterial = new THREE.ShaderMaterial({
+  uniforms,
+	vertexShader,
+  fragmentShader,
+  side: THREE.DoubleSide
+});
+
 init();
 animate();
-
 
 function createFieldScene(){
 
@@ -58,49 +134,95 @@ function createFieldScene(){
     fieldDirectionalLight.position.set(3, 4, 3);
 
     // build doors with a lazy layout - doors will need specific names in your 3D model scene
-    const doorGeometry = new THREE.BoxGeometry( 0.8, 1.9, 0.08 );
+    const doorGeometry = new THREE.BoxGeometry( 1, 2.5, 0.08 );
     const doorMaterial = new THREE.MeshLambertMaterial();
+    doorMaterial.color = new THREE.Color(0xff0000);
+
+    const doorLocations = new Array();
+    doorLocations.push(new THREE.Vector3(0, 0, -6)); //1
+    doorLocations.push(new THREE.Vector3(-1.8, 0, -12)); //2
+    doorLocations.push(new THREE.Vector3(3.4, 0, -19)); //3
+    doorLocations.push(new THREE.Vector3(-6, 0, -23)); //4
+    doorLocations.push(new THREE.Vector3(6.4, 0, -26)); //5
+    doorLocations.push(new THREE.Vector3(-10, 0, -29)); //6?
+    doorLocations.push(new THREE.Vector3(15, 0, -30)); //7?
+    doorLocations.push(new THREE.Vector3(-15, 0, -28)); //8?
+    doorLocations.push(new THREE.Vector3(12, 0, -35)); //9?
+    doorLocations.push(new THREE.Vector3(-16, 0, -36)); //10
 
     for (let i = 0; i < 10; i++) {
         const door = new THREE.Mesh( doorGeometry, doorMaterial );
-        door.position.x = i - 5;
-        door.position.z = - 3;
+        door.position.x = doorLocations[i].x;
+        door.position.y = doorLocations[i].y;
+        // door.position.y = 0;
+        door.position.z = doorLocations[i].z;
         door.layers.enable( 1 );
         fieldGroup.add(door);
         }
     
+    // const dracoLoader = new DRACOLoader();
+    // dracoLoader.setDecoderPath( 'js/libs/draco/gltf/' );
+
+    const loader = new GLTFLoader();
+    // loader.setDRACOLoader( dracoLoader );
+
+    let groundPoints = [];
+
+    // ANIMATED GRASS
+    const instanceNumber = 300000;
+    const dummy = new THREE.Object3D();
+    loader.load( 'assets/ground_plane_only2.glb', function ( gltf ) {
+
+        const model = gltf.scene;
+        model.position.set( 0, 0, -21.5 );
+        fieldGroup.add( model );
+        console.log(model.children[0])
+
+        const sampler = new MeshSurfaceSampler(model.children[0]).build();
+        const tempPosition = new THREE.Vector3();
+        const tempObject = new THREE.Object3D();
+        const geometry = new THREE.PlaneGeometry( 0.2, 0.5, 1, 4 );
+        geometry.translate( 0, 0.25, 0 ); // move grass blade geometry lowest point at 0.
+    
+        const instancedMesh = new THREE.InstancedMesh( geometry, leavesMaterial, instanceNumber );
+    
+        fieldGroup.add( instancedMesh );
+
+        for ( let i=0 ; i<instanceNumber ; i++ ) {
+            // console.log(tempPosition);
+            sampler.sample(tempPosition);
+            dummy.position.x = tempPosition.x;
+            dummy.position.y = tempPosition.y;
+            dummy.position.z = tempPosition.z -21.5;
         
-    // build floor
-    const groundGeometry = new THREE.CylinderBufferGeometry(30, 30, 0.5, 32, 1); 
-    groundMesh = new THREE.Mesh( groundGeometry, doorMaterial );
-    groundMesh.position.y = -0.7
+        dummy.scale.setScalar( 0.5 + Math.random() * 2 );
+        
+        dummy.rotation.y = Math.random() * Math.PI;
+        
+        dummy.updateMatrix();
+        instancedMesh.setMatrixAt( i, dummy.matrix );
+    
+        }
 
-    fieldGroup.add( fieldAmbientLight, fieldDirectionalLight, groundMesh );
+    }, undefined, function ( e ) {
 
-    // Night sky with stars
-    const vertices = [];
+        console.error( e );
 
-    for ( let i = 0; i < 10000; i ++ ) {
+    } );
 
-        const radius = 10;
-        const theta = Math.random() * Math.PI;
-        const phi = Math.random() * Math.PI;
+    fieldGroup.add( fieldAmbientLight, fieldDirectionalLight );
 
-        const x = radius * Math.sin(theta) * Math.cos(phi);
-        const y = radius * Math.sin(theta) * Math.sin(phi);
-        const z = radius * Math.cos(theta);
-
-        vertices.push( x, y, z );
-    }
-
-    const starGeometry = new THREE.BufferGeometry();
-    starGeometry.setAttribute( 'position', new THREE.Float32BufferAttribute( vertices, 3 ) );
-
-    const starMaterial = new THREE.PointsMaterial( { color: 0xdddddd, size: 1.5, sizeAttenuation: false } );
-
-    const points = new THREE.Points( starGeometry, starMaterial );
-
-    fieldGroup.add( points );
+    // skybox
+    const skybox_loader = new THREE.CubeTextureLoader();
+    const skybox_texture = skybox_loader.load([
+    'img/night_right.png',
+    'img/night_left.png',
+    'img/night_up.png',
+    'img/night_down.png',
+    'img/night_back.png',
+    'img/night_front.png',
+    ]);
+    scene.background = skybox_texture;
 
     // AUDIO
     var audioLoader = new THREE.AudioLoader(manager);
@@ -113,7 +235,6 @@ function createFieldScene(){
     });
 
     scene.add( fieldGroup );
-    // console.log( fieldGroup );
     }
 
 
@@ -204,6 +325,8 @@ function init() {
 
     camera = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 0.01, 50 );
     camera.position.z = 1;
+    camera.position.y = 0.9;
+
     // this is needed for normal camera looking, otherwise it goes fucked.
     camera.rotation.order = 'YXZ'
 
@@ -275,7 +398,6 @@ function onDocumentTouchMove( event ) {
 function onDoorClick( event ) {
 
     console.log('door clicked');
-    console.log(selectedObject);
 
     gsap.to(camera.position, {
         x: selectedObject.position.x,
@@ -299,6 +421,9 @@ function onDoorClick( event ) {
 
 
 function animate() {
+
+    leavesMaterial.uniforms.time.value = clock.getElapsedTime();
+    leavesMaterial.uniformsNeedUpdate = true;
 
     requestAnimationFrame( animate );
 
