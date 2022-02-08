@@ -8,6 +8,18 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { MeshSurfaceSampler } from 'three/examples/jsm/math/MeshSurfaceSampler.js';
 import { gsap } from 'gsap';
 
+const doorLocations = new Array();
+doorLocations.push(new THREE.Vector3(0, 0.25, -6)); //1
+doorLocations.push(new THREE.Vector3(-1.8, 0.25, -12)); //2
+doorLocations.push(new THREE.Vector3(3.4, 0.25, -19)); //3
+doorLocations.push(new THREE.Vector3(-6, 0.25, -23)); //4
+doorLocations.push(new THREE.Vector3(6.4, 0.25, -26)); //5
+doorLocations.push(new THREE.Vector3(-10, 0.25, -29)); //6?
+doorLocations.push(new THREE.Vector3(15, 0.25, -30)); //7?
+doorLocations.push(new THREE.Vector3(-15, 0.25, -28)); //8?
+doorLocations.push(new THREE.Vector3(12, 0.25, -35)); //9?
+doorLocations.push(new THREE.Vector3(-16, 0.25, -36)); //10
+
 let scene, camera, renderer, selectedObject;
 let fieldGroup;
 let composer, effectFXAA, outlinePass;
@@ -129,41 +141,45 @@ function createFieldScene(){
     fieldGroup = new THREE.Group();
 
     // Adding lighting
-    const fieldAmbientLight = new THREE.AmbientLight( 'white', 0.4 );
-    const fieldDirectionalLight = new THREE.DirectionalLight( 'yellow', 0.8);
+    const fieldAmbientLight = new THREE.AmbientLight( 'white', 0 );
+    const fieldDirectionalLight = new THREE.DirectionalLight( 'yellow', 0);
     fieldDirectionalLight.position.set(3, 4, 3);
 
-    // build doors with a lazy layout - doors will need specific names in your 3D model scene
-    const doorGeometry = new THREE.BoxGeometry( 1, 2.5, 0.08 );
-    const doorMaterial = new THREE.MeshLambertMaterial();
-    doorMaterial.color = new THREE.Color(0xff0000);
+    const door = loader.load( 'assets/door.glb', function ( gltf ) {
+        gltf.scene.traverse(function(child){
+            child.castShadow = true;
+            child.receiveShadow = true;
+        });
+        // console.log(doorLight);
+        for (let i = 0; i < 10; i++) {
+            const doorModel = gltf.scene.clone();
+            const doorLight = doorModel.children[1];
+            // const helper = new THREE.CameraHelper( doorLight.shadow.camera );
+            // scene.add( helper );
+            // doorLight.shadow.camera.left = 100;
+            // doorLight.shadow.camera.right = 100;
+            // doorLight.shadow.camera.top = 100;
+            // doorLight.shadow.camera.bottom = 100;
+            console.log(doorLight);
+            doorLight.target = doorModel;
+            doorLight.intensity = 2;
+            doorLight.distance = 5;
+            doorLight.shadow.bias = -0.1;
+            doorModel.position.x = doorLocations[i].x;
+            doorModel.position.y = doorLocations[i].y;
+            // door.position.y = 0;
+            doorModel.position.z = doorLocations[i].z;
+            doorModel.layers.enable( 1 );
+            fieldGroup.add(doorModel);
+            }
+    }, undefined, function ( e ) {
 
-    const doorLocations = new Array();
-    doorLocations.push(new THREE.Vector3(0, 0, -6)); //1
-    doorLocations.push(new THREE.Vector3(-1.8, 0, -12)); //2
-    doorLocations.push(new THREE.Vector3(3.4, 0, -19)); //3
-    doorLocations.push(new THREE.Vector3(-6, 0, -23)); //4
-    doorLocations.push(new THREE.Vector3(6.4, 0, -26)); //5
-    doorLocations.push(new THREE.Vector3(-10, 0, -29)); //6?
-    doorLocations.push(new THREE.Vector3(15, 0, -30)); //7?
-    doorLocations.push(new THREE.Vector3(-15, 0, -28)); //8?
-    doorLocations.push(new THREE.Vector3(12, 0, -35)); //9?
-    doorLocations.push(new THREE.Vector3(-16, 0, -36)); //10
+        console.error( e );
 
-    for (let i = 0; i < 10; i++) {
-        const door = new THREE.Mesh( doorGeometry, doorMaterial );
-        door.position.x = doorLocations[i].x;
-        door.position.y = doorLocations[i].y;
-        // door.position.y = 0;
-        door.position.z = doorLocations[i].z;
-        door.layers.enable( 1 );
-        fieldGroup.add(door);
-        }
+    } );
     
     // const dracoLoader = new DRACOLoader();
     // dracoLoader.setDecoderPath( 'js/libs/draco/gltf/' );
-
-    const loader = new GLTFLoader();
     // loader.setDRACOLoader( dracoLoader );
 
     let groundPoints = [];
@@ -195,7 +211,7 @@ function createFieldScene(){
             dummy.position.y = tempPosition.y;
             dummy.position.z = tempPosition.z -21.5;
         
-        dummy.scale.setScalar( 0.5 + Math.random() * 2 );
+        dummy.scale.setScalar( 0.5 + Math.random() * 1.5 );
         
         dummy.rotation.y = Math.random() * Math.PI;
         
@@ -340,6 +356,9 @@ function init() {
     renderer = new THREE.WebGLRenderer( { antialias: true } );
     renderer.setSize( window.innerWidth, window.innerHeight );
     document.body.appendChild( renderer.domElement );
+
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
     //camera controls are not longer needed as we have our own functions #greyhat
 
