@@ -62,42 +62,76 @@ let grassLoader = new THREE.TextureLoader();
 let diffuse = grassLoader.load('img/grass_full.png');
 let alpha = grassLoader.load( 'img/grass_full_alpha.jpg' );
 
+// shader lighting
+var lightPositions = new Array();
+for (let i=0 ; i<doorLocations.length ; i++) {
+    lightPositions.push(new THREE.Vector3(doorLocations[i].x, doorLocations[i].y, doorLocations[i].z + 1));
+};
+
+var Config = function(){
+    this.lightColor = '#ef9123';
+    this.lightPower = 0.00005;
+    this.ambientLightPower = 0.2;
+    this.magnitude = 0.6;
+    this.instanceNumber = 75000;
+};
+var config = new Config();
+
 // Grass shaders
 const vertexShader = `
   varying vec2 vUv;
   uniform float time;
+  uniform vec3 lightPos[10];
+  varying vec3 vNormal;
+  varying vec4 vLightPos[10];
+  varying vec4 vecPos;
   
-	void main() {
+  void main() {
 
-    vUv = uv;
-    
-    // VERTEX POSITION
-    
-    vec4 mvPosition = vec4( position, 1.0 );
-    #ifdef USE_INSTANCING
-    	mvPosition = instanceMatrix * mvPosition;
-    #endif
-    
-    // DISPLACEMENT
-    
-    // here the displacement is made stronger on the blades tips.
-    float dispPower = 1.0 - cos( uv.y * 3.1416 / 2.0 );
-    
-    float displacement = sin( mvPosition.z + time * 1.0 ) * ( 0.05 * dispPower );
-    mvPosition.z += displacement;
-    
-    //
-    
-    vec4 modelViewPosition = modelViewMatrix * mvPosition;
-    gl_Position = projectionMatrix * modelViewPosition;
+  vUv = uv;
+  vNormal =  (modelMatrix * vec4(normal, 0.0)).xyz;
 
-	}
+  // VERTEX POSITION
+
+  vec4 mvPosition = vec4( position, 1.0 );
+  #ifdef USE_INSTANCING
+      mvPosition = instanceMatrix * mvPosition;
+  #endif
+
+  // DISPLACEMENT
+
+  // here the displacement is made stronger on the blades tips.
+  float dispPower = 1.0 - cos( uv.y * 3.1416 / 2.0 );
+
+  float displacement = sin( mvPosition.z + time * 1.0 ) * ( 0.05 * dispPower );
+  mvPosition.z += displacement;
+
+  //
+  for(int i = 0; i < 10; ++i) {
+      vLightPos[i] = projectionMatrix * modelViewMatrix * vec4(lightPos[i], 1.0);
+  }
+
+  vec4 modelViewPosition = modelViewMatrix * mvPosition;
+  vecPos = projectionMatrix * modelViewPosition;
+  gl_Position = vecPos;
+}
 `;
 
 const fragmentShader = `
   uniform sampler2D map;
   uniform sampler2D alphaMap;
   varying vec2 vUv;
+
+  uniform vec3 lightColor;
+  uniform float lightPower;
+  uniform float ambientLightPower;
+  varying vec3 vNormal;
+  varying vec4 vLightPos[10];
+  varying vec4 vecPos;
+
+  float dist;
+  vec3 lightDirection;
+  float cosTheta;
   
   void main() {
   
@@ -105,12 +139,21 @@ const fragmentShader = `
   if(texture2D(alphaMap, vUv).r < 0.15){
     discard;
   }
-  
-/*   	vec3 baseColor = vec3( 0.41, 1.0, 0.5 );
-  	    float clarity = ( vUv.y * 0.5 ) + 0.5;
-  	    gl_FragColor = vec4( baseColor * clarity, 1 ); */
-        
-  gl_FragColor = texture2D(map, vUv);
+  vec4 textureColor = texture2D(map, vec2(vUv.s, vUv.t));
+
+  vec4 materialAmbientColor = vec4(vec3(ambientLightPower), 1.0) * textureColor;
+  vec4 lightColor = vec4(lightColor, 1.0);
+
+  vec4 fragCol = materialAmbientColor;
+
+  for(int i = 0; i < 10; ++i) {
+    dist = length(vLightPos[i] - vecPos) * 0.0015;
+    lightDirection = normalize(vecPos.xyz - vLightPos[i].xyz);
+    cosTheta = clamp( dot( vNormal,lightDirection ),0.0, 1.0);
+    fragCol = fragCol + textureColor * lightColor * lightPower * cosTheta / (dist * dist);
+  }
+    
+    gl_FragColor = fragCol;
   }
 `;
 
@@ -122,12 +165,17 @@ const uniforms = {
     type: 't',
     value: diffuse
   },
-  alphaMap: { value: alpha }
+  alphaMap: { value: alpha },
+  lightPos:   { value: lightPositions },
+  lightColor: { type: "c", value: new THREE.Color(config.lightColor) },
+  magnitude:  { type: "f", value: config.magnitude },
+  lightPower: { type: "f", value: config.lightPower },
+  ambientLightPower: { type: "f", value: config.ambientLightPower },
 }
 
 const leavesMaterial = new THREE.ShaderMaterial({
   uniforms,
-	vertexShader,
+    vertexShader,
   fragmentShader,
   side: THREE.DoubleSide
 });
@@ -154,13 +202,6 @@ function createFieldScene(){
         for (let i = 0; i < 10; i++) {
             const doorModel = gltf.scene.clone();
             const doorLight = doorModel.children[1];
-            // const helper = new THREE.CameraHelper( doorLight.shadow.camera );
-            // scene.add( helper );
-            // doorLight.shadow.camera.left = 100;
-            // doorLight.shadow.camera.right = 100;
-            // doorLight.shadow.camera.top = 100;
-            // doorLight.shadow.camera.bottom = 100;
-            console.log(doorLight);
             doorLight.target = doorModel;
             doorLight.intensity = 2;
             doorLight.distance = 5;
@@ -185,16 +226,54 @@ function createFieldScene(){
     let groundPoints = [];
 
     // ANIMATED GRASS
-    const instanceNumber = 300000;
+    const instanceNumber = config.instanceNumber;
     const dummy = new THREE.Object3D();
     loader.load( 'assets/ground_plane_only2.glb', function ( gltf ) {
 
         const model = gltf.scene;
+        const ground = model.children[0];
         model.position.set( 0, 0, -21.5 );
         fieldGroup.add( model );
-        console.log(model.children[0])
+        console.log(model)
 
-        const sampler = new MeshSurfaceSampler(model.children[0]).build();
+        const vertexCount = model.children[0].geometry.getAttribute( 'position' ).count;
+        let weight_unscaled = new Float32Array(vertexCount);
+        let weight = new Float32Array(vertexCount);
+        let xpos = new Array();
+        let ypos = new Array();
+        let zpos = new Array();
+        for (let i=0; i<vertexCount*3; i++){
+            if (i%3 == 0){
+                xpos.push(model.children[0].geometry.attributes.position.array[i]);
+            } else if (i%3 == 1){
+                ypos.push(model.children[0].geometry.attributes.position.array[i]);
+            } else {
+                zpos.push(model.children[0].geometry.attributes.position.array[i]);
+            }
+        }
+        let pointpos;
+        for (let i=0; i<vertexCount; i++){
+            pointpos = new THREE.Vector3(xpos[i] - camera.position.x, 0, zpos[i] - camera.position.z - 21.5);
+            weight_unscaled[i] = pointpos.lengthSq();
+        }
+        let normalizer = Math.max.apply(null, weight_unscaled);
+        for (let i=0; i<vertexCount; i++){
+            // console.log(weight_unscaled[i]);
+            // console.log(Math.max(weight_unscaled))
+            weight[i] = weight_unscaled[i] / normalizer;
+            weight[i] = 1 - weight[i];
+            // weight[i] = 1/(weight[i]*weight[i]);
+            if (weight[i] < 0.7){
+                weight[i] = 0;
+            }
+        }
+        console.log(Math.max.apply(null, weight));
+        console.log(Math.min.apply(null, weight));
+        model.children[0].geometry.setAttribute( 'weight', new THREE.BufferAttribute( weight, 1 , true).setUsage( THREE.DynamicDrawUsage ) );
+        // console.info( 'Sampling ' + instanceNumber + ' points from a surface with ' + vertexCount + ' vertices...' );
+
+        const sampler = new MeshSurfaceSampler(model.children[0]).setWeightAttribute('weight').build();
+
         const tempPosition = new THREE.Vector3();
         const tempObject = new THREE.Object3D();
         const geometry = new THREE.PlaneGeometry( 0.2, 0.5, 1, 4 );
