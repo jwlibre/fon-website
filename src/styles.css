@@ -16,6 +16,22 @@ html, body {
     transform: translateY(-50%);
   }
 
+#loading-percentage {
+    color:rgba(240, 248, 255, 0.315);
+    text-align: center;
+    font-family: monospace;
+    font-size: small;
+    margin-top: auto;
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: auto;
+    margin-bottom: auto;
+    display: grid;
+    position: relative;
+    top: 30%;
+    transform: translateY(-50%);
+}
+
 #loading-screen {
 	position: absolute;
 	z-index: 2;

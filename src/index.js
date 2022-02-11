@@ -25,6 +25,8 @@ let fieldGroup;
 let composer, effectFXAA, outlinePass;
 let mixer;
 
+let loadingPercentage, loadingPercentageText;
+
 let selectedObjects = [];
 
 // LOADING MANAGER
@@ -34,26 +36,24 @@ const manager = new THREE.LoadingManager( () => {
     // optional: remove loader from DOM via event listener
     loadingScreen.addEventListener( 'transitionend', onTransitionEnd );
 });
-// manager.onStart = function ( url, itemsLoaded, itemsTotal ) {
-// 	console.log( 'Started loading file: ' + url + '.\nLoaded ' + itemsLoaded + ' of ' + itemsTotal + ' files.' );
-// };
-// manager.onLoad = function ( ) {
-// 	console.log( 'Loading complete!');
-// };
-// manager.onProgress = function ( url, itemsLoaded, itemsTotal ) {
-// 	console.log( 'Loading file: ' + url + '.\nLoaded ' + itemsLoaded + ' of ' + itemsTotal + ' files.' );
-// };
-// manager.onError = function ( url ) {
-// 	console.log( 'There was an error loading ' + url );
-// };
+manager.onProgress = function ( url, itemsLoaded, itemsTotal ) {
+    loadingPercentage = Math.round((itemsLoaded/itemsTotal)) * 100;
+    // console.log(loadingPercentage)
+    document.getElementById("loading-percentage").innerHTML = "loading " + loadingPercentage + "%";
+    // console.log(loadingPercentageText);
+    // loadingPercentageText.innerHTML = loadingPercentage;
+       // console.log( 'Loading file: ' + url + '.\nLoaded ' + itemsLoaded + ' of ' + itemsTotal + ' files.' );
+}
 function onTransitionEnd( event ) {
-	event.target.remove();
+    event.target.remove();
 }
 
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 
 const clock = new THREE.Clock();
+
+const loader = new GLTFLoader(manager);
 
 window.addEventListener( 'resize', onWindowResize, false );
 
