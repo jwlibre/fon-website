@@ -2,10 +2,15 @@
 <html lang="en">
 <head>
 	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
-	<script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+	<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+	<script src="https://code.jquery.com/jquery-3.5.1.js"></script>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
 	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
 	<link rel="stylesheet" href="styles.css">
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="assets/fontawesome/css/all.css" rel="stylesheet">
+	<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500&display=swap" rel="stylesheet">	
 	<title>Fields website</title>
 	<script type="module" src="index.js"></script>
 </head>
@@ -16,34 +21,116 @@
 	<div id="loading-percentage"></div>
 </section>
 <body>
-	<nav class="navbar navbar-expand-lg navbar-light bg-light">
-		<a class="navbar-brand" href="#">Navbar</a>
-		<button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNavDropdown" aria-controls="navbarNavDropdown" aria-expanded="false" aria-label="Toggle navigation">
-		  <span class="navbar-toggler-icon"></span>
-		</button>
-		<div class="collapse navbar-collapse" id="navbarNavDropdown">
-		  <ul class="navbar-nav">
-			<li class="nav-item active">
-			  <a class="nav-link" href="#">Home <span class="sr-only">(current)</span></a>
-			</li>
-			<li class="nav-item">
-			  <a class="nav-link" href="#">Features</a>
-			</li>
-			<li class="nav-item">
-			  <a class="nav-link" href="#">Pricing</a>
-			</li>
-			<li class="nav-item dropdown">
-			  <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-				Dropdown link
-			  </a>
-			  <div class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
-				<a class="dropdown-item" href="#">Action</a>
-				<a class="dropdown-item" href="#">Another action</a>
-				<a class="dropdown-item" href="#">Something else here</a>
-			  </div>
-			</li>
-		  </ul>
-		</div>
+	<div id="navigation">
+		<nav class="top-menu">
+			<ul>
+				<li>
+				<img id="navbar-logo" src="./img/logo2.svg" alt="">
+				</li>
+				<li>
+				<a class="default" id="about" href="#">About</button>
+				</li>
+				<li>
+				<a class="default" id="music" href="#">Music</a>
+				</li>
+				<li>
+				<a class="default" id="press" href="#">Press</a>
+				</li>
+				<li>
+				<a class="default" id="merch" href="#">Merch</a>
+				</li>
+				<li>
+				<a class="default" id="tour" href="#">Tour</a>
+				</li>
+				<li>
+				<a class="default" id="gallery" href="#">Gallery</a>
+				</li>
+				<!-- <li class="nav-item dropdown">
+				<a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+					Dropdown link
+				</a>
+				<div class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
+					<a class="dropdown-item" href="#">Action</a>
+					<a class="dropdown-item" href="#">Another action</a>
+					<a class="dropdown-item" href="#">Something else here</a>
+				</div>
+				</li> -->
+			</ul>
+		</nav>
+	</div>
+	  <nav class="bottom-menu" id="footer">
+			<ul>
+				<li class="icon">
+				<a class="default" href="https://www.instagram.com/naecluda/" target="_blank" rel="noopener noreferrer"><i class="fa-brands fa-instagram nav-link"></i></a>
+				</li>
+				<li class="icon">
+				<a class="default" href="https://www.facebook.com/fieldsofnaecluda/" target="_blank" rel="noopener noreferrer"><i class="fa-brands fa-facebook nav-link"></i></a>
+				</li>
+				<li class="icon">
+				<a class="default" href="https://open.spotify.com/artist/0hjNXx63y0CZPtyK743INO?autoplay=true" target="_blank" rel="noopener noreferrer"><i class="fa-brands fa-spotify nav-link"></i></a>
+				</li>
+				<li class="icon">
+				<a class="default" href="https://www.youtube.com/channel/UC9klMmj8txNrFqpLhoJCqTA" target="_blank" rel="noopener noreferrer"><i class="fa-brands fa-youtube nav-link"></i></a>
+				</li>
+				<li class="icon">
+				<a class="default" href="https://naecluda.bandcamp.com/album/fields-of-n-cluda" target="_blank" rel="noopener noreferrer"><i class="fa-brands fa-bandcamp nav-link"></i></a>
+				</li>
+				<li class="icon">
+				<a class="default" href="https://www.deezer.com/fr/artist/79685452?autoplay=true" target="_blank" rel="noopener noreferrer"><i class="fa-brands fa-deezer nav-link"></i></a>
+				</li>
+				<li class="icon">
+				<a class="default" href="https://music.apple.com/us/album/fields-of-n%C3%A6cluda/id1489537579" target="_blank" rel="noopener noreferrer"><i class="fa-brands fa-apple nav-link"></i></a>
+				</li>
+				<li class="icon">
+				<a class="default" href="https://twitter.com/naecludaband" target="_blank" rel="noopener noreferrer"><i class="fa-brands fa-twitter nav-link"></i></a>
+				</li>
+				<li class="nav-item icon">
+				<a class="default" href="mailto:naecluda@gmail.com" target="_blank" rel="noopener noreferrer"><i class="fa-solid fa-envelope nav-link"></i></a>
+				</li>
+			</ul>
 	  </nav>
+<div id="about-page" class="page">
+	<div class="text-left">
+	<p>
+		Fields of Næcluda a été initié en 2018 par Michel Teyssier (composition/basse/chant) qui écrit et enregistre les premières pistes en solo depuis son home-studio avant d'être rejoint par la suite par Mathieu Schricke (batterie).
+		Ensemble, ils affinent la musique du projet qui évolue entre rock alternatif progressif et ambient/metal, pour confectionner un premier album paru le 6 décembre 2019 via Inouïe Distribution.
+		La musique et les textes de Fields of Næcluda traduisent des instants forts de la vie, de ceux qui souvent échappent à notre compréhension du moment. En ressort une atmosphère onirique, poétique, mais également énergique et puissante.
+		Après les premiers concerts, le line up du groupe se stabilise avec l'arrivée d'Etienne Doucet à la guitare. Un deuxième album est d'ores et déjà en cours de préparation. 
+    </p>
+    </div>
+</div>
+<div id="music-page" class="page">
+	<div class="text-right">
+	<p>
+		MUSIC MUSIC MUSIC 
+    </p>
+    </div>
+</div>
+<script>
+$(document).ready(function() {
+	$('#navigation a').click(function(e) {
+		// e.preventDefault();
+		// case 1: click on active tab button to close it
+		if ($(this).hasClass('clicked')) {
+			console.log($(".clicked").length);
+			$(this).removeClass('clicked');
+			$(this).addClass('default');
+			$( "#" + e.target.id + "-page").slideUp("slow").delay(500);
+			// $(this).css('color', 'rgba(255, 255, 255, 0.589)');
+		}
+		else {
+			// if this button has not been clicked yet, find if any others have and set them to zero first.
+			console.log($(".clicked").length);
+			if ($(".clicked").length === 1) {
+				$( ".page" ).slideUp("slow").delay(500);
+				$('#navigation a').removeClass('clicked');
+			}
+			$(this).addClass('clicked');
+			// $(this).css('color', 'white');
+			$( "#" + e.target.id + "-page").slideDown("slow").delay(500);
+		}
+	});
+});
+</script>
 </body>
 </html>
