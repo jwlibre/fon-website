@@ -4,3 +4,5 @@ node_modules
 dist
 fields-website.code-workspace
 notes
+misc
+.vscode
