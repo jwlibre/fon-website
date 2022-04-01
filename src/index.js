@@ -23,7 +23,6 @@ doorLocations.push(new THREE.Vector3(-16, 0.25, -36)); //10
 let scene, camera, renderer, selectedObject;
 let fieldGroup;
 let composer, effectFXAA, outlinePass;
-let mixer;
 
 let loadingPercentage, loadingPercentageText;
 
@@ -59,8 +58,9 @@ window.addEventListener( 'resize', onWindowResize, false );
 
 // Grass texture loader with diffuse and alpha
 let grassLoader = new THREE.TextureLoader();
-let diffuse = grassLoader.load('img/grass_full.png');
-let alpha = grassLoader.load( 'img/grass_full_alpha.jpg' );
+let diffuse = grassLoader.load('img/grass_full_extra2.png');
+let alpha = grassLoader.load( 'img/grass_full_extra_alpha.png' );
+console.log(alpha)
 
 // shader lighting
 var lightPositions = new Array();
@@ -73,7 +73,7 @@ var Config = function(){
     this.lightPower = 0.00005;
     this.ambientLightPower = 0.2;
     this.magnitude = 0.6;
-    this.instanceNumber = 75000;
+    this.instanceNumber = 7500;
 };
 var config = new Config();
 
@@ -81,79 +81,50 @@ var config = new Config();
 const vertexShader = `
   varying vec2 vUv;
   uniform float time;
-  uniform vec3 lightPos[10];
-  varying vec3 vNormal;
-  varying vec4 vLightPos[10];
-  varying vec4 vecPos;
-  
+
   void main() {
 
-  vUv = uv;
-  vNormal =  (modelMatrix * vec4(normal, 0.0)).xyz;
+    vUv = uv;
+    
+    // VERTEX POSITION
+    
+    vec4 mvPosition = vec4( position, 1.0 );
+    
+    #ifdef USE_INSTANCING
+    	mvPosition = instanceMatrix * mvPosition;
+    #endif
+    
+    // DISPLACEMENT
+    
+    // here the displacement is made stronger on the blades tips.
+    float dispPower = 1.0 - cos( uv.y * 3.1416 / 2.0 );
+    
+    float displacement = sin( mvPosition.z + time / 2.0 ) * ( 0.1 * dispPower );
+    mvPosition.z += displacement;
+    
+    //
+    
+    vec4 modelViewPosition = modelViewMatrix * mvPosition;
+    gl_Position = projectionMatrix * modelViewPosition;
 
-  // VERTEX POSITION
-
-  vec4 mvPosition = vec4( position, 1.0 );
-  #ifdef USE_INSTANCING
-      mvPosition = instanceMatrix * mvPosition;
-  #endif
-
-  // DISPLACEMENT
-
-  // here the displacement is made stronger on the blades tips.
-  float dispPower = 1.0 - cos( uv.y * 3.1416 / 2.0 );
-
-  float displacement = sin( mvPosition.z + time * 1.0 ) * ( 0.05 * dispPower );
-  mvPosition.z += displacement;
-
-  //
-  for(int i = 0; i < 10; ++i) {
-      vLightPos[i] = projectionMatrix * modelViewMatrix * vec4(lightPos[i], 1.0);
   }
-
-  vec4 modelViewPosition = modelViewMatrix * mvPosition;
-  vecPos = projectionMatrix * modelViewPosition;
-  gl_Position = vecPos;
-}
 `;
 
 const fragmentShader = `
+  varying vec2 vUv;
   uniform sampler2D map;
   uniform sampler2D alphaMap;
-  varying vec2 vUv;
 
-  uniform vec3 lightColor;
-  uniform float lightPower;
-  uniform float ambientLightPower;
-  varying vec3 vNormal;
-  varying vec4 vLightPos[10];
-  varying vec4 vecPos;
-
-  float dist;
-  vec3 lightDirection;
-  float cosTheta;
-  
   void main() {
-  
-    //If transparent, don't draw
+
+  //If transparent, don't draw
   if(texture2D(alphaMap, vUv).r < 0.15){
     discard;
   }
   vec4 textureColor = texture2D(map, vec2(vUv.s, vUv.t));
-
-  vec4 materialAmbientColor = vec4(vec3(ambientLightPower), 1.0) * textureColor;
-  vec4 lightColor = vec4(lightColor, 1.0);
-
-  vec4 fragCol = materialAmbientColor;
-
-  for(int i = 0; i < 10; ++i) {
-    dist = length(vLightPos[i] - vecPos) * 0.0015;
-    lightDirection = normalize(vecPos.xyz - vLightPos[i].xyz);
-    cosTheta = clamp( dot( vNormal,lightDirection ),0.0, 1.0);
-    fragCol = fragCol + textureColor * lightColor * lightPower * cosTheta / (dist * dist);
-  }
-    
-    gl_FragColor = fragCol;
+  
+  float clarity = ( vUv.y * 0.5 ) + 0.5;
+  gl_FragColor = vec4( textureColor * clarity);
   }
 `;
 
@@ -185,7 +156,6 @@ animate();
 
 function createFieldScene(){
 
-    // create field scene group (represents the GLTF scene import for now, I'll explain if you have questions)
     fieldGroup = new THREE.Group();
 
     // Adding lighting
@@ -210,7 +180,8 @@ function createFieldScene(){
             doorModel.position.y = doorLocations[i].y;
             // door.position.y = 0;
             doorModel.position.z = doorLocations[i].z;
-            doorModel.layers.enable( 1 );
+            doorModel.children[0].children[3].layers.enable( 1 );
+            console.log(doorModel);
             fieldGroup.add(doorModel);
             }
     }, undefined, function ( e ) {
@@ -218,12 +189,6 @@ function createFieldScene(){
         console.error( e );
 
     } );
-    
-    // const dracoLoader = new DRACOLoader();
-    // dracoLoader.setDecoderPath( 'js/libs/draco/gltf/' );
-    // loader.setDRACOLoader( dracoLoader );
-
-    let groundPoints = [];
 
     // ANIMATED GRASS
     const instanceNumber = config.instanceNumber;
@@ -258,11 +223,8 @@ function createFieldScene(){
         }
         let normalizer = Math.max.apply(null, weight_unscaled);
         for (let i=0; i<vertexCount; i++){
-            // console.log(weight_unscaled[i]);
-            // console.log(Math.max(weight_unscaled))
             weight[i] = weight_unscaled[i] / normalizer;
             weight[i] = 1 - weight[i];
-            // weight[i] = 1/(weight[i]*weight[i]);
             if (weight[i] < 0.7){
                 weight[i] = 0;
             }
@@ -270,29 +232,27 @@ function createFieldScene(){
         console.log(Math.max.apply(null, weight));
         console.log(Math.min.apply(null, weight));
         model.children[0].geometry.setAttribute( 'weight', new THREE.BufferAttribute( weight, 1 , true).setUsage( THREE.DynamicDrawUsage ) );
-        // console.info( 'Sampling ' + instanceNumber + ' points from a surface with ' + vertexCount + ' vertices...' );
 
         const sampler = new MeshSurfaceSampler(model.children[0]).setWeightAttribute('weight').build();
 
         const tempPosition = new THREE.Vector3();
-        const tempObject = new THREE.Object3D();
-        const geometry = new THREE.PlaneGeometry( 0.2, 0.5, 1, 4 );
-        geometry.translate( 0, 0.25, 0 ); // move grass blade geometry lowest point at 0.
+        const geometry = new THREE.PlaneGeometry( 0.5, 0.5, 1, 4 );
+        geometry.translate( 0, 0.25, 0 );
     
         const instancedMesh = new THREE.InstancedMesh( geometry, leavesMaterial, instanceNumber );
     
         fieldGroup.add( instancedMesh );
 
         for ( let i=0 ; i<instanceNumber ; i++ ) {
-            // console.log(tempPosition);
             sampler.sample(tempPosition);
             dummy.position.x = tempPosition.x;
             dummy.position.y = tempPosition.y;
             dummy.position.z = tempPosition.z -21.5;
         
-        dummy.scale.setScalar( 0.5 + Math.random() * 1.5 );
+        dummy.scale.setScalar( 1 + Math.random() * 1.5 );
         
-        dummy.rotation.y = Math.random() * Math.PI;
+        // dummy.rotation.y = Math.random() * Math.PI;
+        dummy.rotation.y = Math.PI;
         
         dummy.updateMatrix();
         instancedMesh.setMatrixAt( i, dummy.matrix );
@@ -330,7 +290,7 @@ function createFieldScene(){
     });
 
     scene.add( fieldGroup );
-    }
+}
 
 
 function createRoomScene(){
@@ -361,11 +321,7 @@ function createRoomScene(){
     wallMesh4.rotation.y = Math.PI * 0.5;
 
     roomGroup.add( roomAmbientLight, roomDirectionalLight, wallMesh1, wallMesh2, wallMesh3, wallMesh4 );
-    // currently the boolean for different controls etc is a visible command, but the group is also removed and added to the scene as well. 
-    //you cant have the group in the scene and invisible as it triggers the raycaster(I will use layers to solve this), 
-    //I couldn't find a good boolean statement for finding if a named group was in the scene or not, 
-    // so at the moment its messy.
-    // the cleaner solution is to do a find if(group in scene = true){} or put the raycast objects in a dedicated layer (I will do this at some point anyway)
+
     roomGroup.visible = false;
 }
 
@@ -380,7 +336,6 @@ function fieldSceneControls(){
 
 function roomSceneControls(){
     // new controls while in a room, so you can look 360.
-    
     camera.rotation.y += 0.03 * ( - ( mouse.x * 7 ) - camera.rotation.y );
     camera.rotation.x += 0.03 * ( (mouse.y * 1) - camera.rotation.x );
     camera.rotation.z = 0
@@ -439,8 +394,6 @@ function init() {
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
-    //camera controls are not longer needed as we have our own functions #greyhat
-
     // postprocessing
     composer = new EffectComposer( renderer );
     const renderPass = new RenderPass( scene, camera );
@@ -497,24 +450,24 @@ function onDoorClick( event ) {
 
     console.log('door clicked');
 
-    gsap.to(camera.position, {
-        x: selectedObject.position.x,
-        y: selectedObject.position.y,
-        z: selectedObject.position.z,
-        duration: 3,
-        onComplete: function (){
-            // match new scene position with selected door position
-            roomGroup.position.x = selectedObject.position.x
-            roomGroup.position.z = selectedObject.position.z
+    // gsap.to(camera.position, {
+    //     x: selectedObject.position.x,
+    //     y: selectedObject.position.y,
+    //     z: selectedObject.position.z,
+    //     duration: 3,
+    //     onComplete: function (){
+    //         // match new scene position with selected door position
+    //         roomGroup.position.x = selectedObject.position.x
+    //         roomGroup.position.z = selectedObject.position.z
 
-            // small brain visible boolean and scene add / removal.
-            roomGroup.visible = true;
-            scene.add( roomGroup );
+    //         // small brain visible boolean and scene add / removal.
+    //         roomGroup.visible = true;
+    //         scene.add( roomGroup );
 
-            fieldGroup.visible = false;
-            scene.remove( fieldGroup );
-        }
-    });
+    //         fieldGroup.visible = false;
+    //         scene.remove( fieldGroup );
+    //     }
+    // });
 }
 
 
