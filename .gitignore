@@ -1,7 +1,6 @@
 node_modules
 .parcel-cache
 .DS_Store
-dist
 fields-website.code-workspace
 notes
 misc
